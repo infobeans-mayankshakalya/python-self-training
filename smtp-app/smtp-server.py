@@ -1,6 +1,6 @@
 import smtplib
 from email.mime.text import MIMEText
-pw='cbxseuhhetyndhnm'
+pw='zipgofjsyvkpipyx'
 
 body="This is the first python email sent"
 
