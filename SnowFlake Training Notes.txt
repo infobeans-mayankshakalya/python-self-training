@@ -1,0 +1,132 @@
+
+================================================================================================================================
+++++++++++++++++++++++++++++++++++++++++++++++++++ Introduction: SnowFlake +++++++++++++++++++++++++++++++++++++++++++++++++++++
+================================================================================================================================
+
+SnowFlake is a Cloud Based Technology:
+	- It can be a Warehouse.
+	- It can be a Data Lake.
+	- It can be used to query the data within it self.
+	
+WorkSheets: WorkSheet in Snowflake interface is kind of a SQL script file that can be written and executed in the databases created in the SnowFlake panel.
+
+================================================================================================================================
+++++++++++++++++++++++++++++++++++++++++++++++++++ SnowFlake Architecture +++++++++++++++++++++++++++++++++++++++++++++++++++++
+================================================================================================================================
+
+Traditional Architecture:
+	- Shared Disk
+		Pros:
+			- Simplicity
+			- Data Management
+		Cons:
+			- Limited Scalability
+			- Network Bottleneck
+			- Single Point of Failure
+	- Shared Nothing
+		Pros:
+			- Scalability
+			- High Availability
+		Cons:
+			- Expensive
+			- Management More Difficult
+
+	- Multi Cluster Shared Data (A Hybrid of both Shared Disk and Shared Nothing Architectures)
+		- Central Data Repository
+		- Massive parallel processing compute clusters
+		- Each node stores a portion of data locally
+		Pros:
+			- Data Management Simplicity (From Shared Disk)
+			- Performance scale-out benefits (From Shared Nothing)
+			
+On a high level, there are three layers in the architecture:
+
+	|---------------------------------------|
+	|	      Cloud Services		|
+	|------------------^^-------------------|
+	|	Query Processing (Compute)	|
+	|------------------^^-------------------|
+	|	    Database Storage		|
+	|---------------------------------------|		
+	
+1. Database Storage Layer:
+	- Compressed Columnar Storage
+		Decoupled Compute & Storage
+		Blob Storage (AWS/Azure/GCP)
+		Snowflake manages all aspects about storage
+		Optimized for OLAP/analytics purposes
+		
+2. Query Processing Layer (Compute Layer):
+	- Muscle of the system
+		Queries are processed using virtual warehouses.
+		Warehouse: MPP compute cluster (multiple compute nodes)
+		provides resources: CPU, memory, and temprory storage
+		
+3. Clude Services:
+	- Brain of the system
+		Authentication
+		Access Layer
+		Metadata Management
+		Query Parsing and optimization
+		Infrastructure management
+
++++++++++++++++++++++++++++++++++++++++++++++++++++ Individual Table Storage +++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Show Tables;   ===>  Statistics for the table storage and properties
+
+TABLE_STORAGE_METRICS	------|
+     view in		      |
+  ACCOUNT_USAGE		      |
+  			      |_____  Most Detailed account usage details can be found in these schemas
+			      |
+TABLE_STORAGE_METRICS	      |
+     view in		      |
+  ACCOUNT_USAGE		------|
+  
++++++++++++++++++++++++++++++++++++++++++++++++++++++++ Resource Monitors ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+There are multiple configuration that can be setup to control and monitor the usage of warehouses and account credits.
+
+ACCOUNTADMIN role can configure those.
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ Warehouses +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+We can create the warehouses in the admin > warehouses, for this the role should be ACCOUNTADMIN/SYSADMIN
+Or the SQL can be used to create the warehouses.
+
+System can detect when to scaleup the clusters based on the checks if there is enough workload to keep the WH busy atleast for next 6 minutes.
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ Objects +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+One Organization can have multiple accounts setup, and each account can have multiple objects in it.
+- Users, Roles, Databases, Warehouses and some more are example of an object.
+
+There can be a multilevel heirarchy of onjects like from above objects, Database can have its own object set like
+- UDFs, Views, Tables, Stages and many more.
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ Snow SQL ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+What is SnowSQL?
+
+- Tool to connect snowflake via CLI 
+- Execute queries, load, and unload data
+- Perform DDL and DML operations
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
