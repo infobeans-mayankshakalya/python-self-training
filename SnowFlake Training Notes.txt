@@ -1,0 +1,292 @@
+
+================================================================================================================================
+++++++++++++++++++++++++++++++++++++++++++++++++++ Introduction: SnowFlake +++++++++++++++++++++++++++++++++++++++++++++++++++++
+================================================================================================================================
+
+SnowFlake is a Cloud Based Technology:
+	- It can be a Warehouse.
+	- It can be a Data Lake.
+	- It can be used to query the data within it self.
+	
+WorkSheets: WorkSheet in Snowflake interface is kind of a SQL script file that can be written and executed in the databases created in the SnowFlake panel.
+
+================================================================================================================================
+++++++++++++++++++++++++++++++++++++++++++++++++++ SnowFlake Architecture +++++++++++++++++++++++++++++++++++++++++++++++++++++
+================================================================================================================================
+
+Traditional Architecture:
+	- Shared Disk
+		Pros:
+			- Simplicity
+			- Data Management
+		Cons:
+			- Limited Scalability
+			- Network Bottleneck
+			- Single Point of Failure
+	- Shared Nothing
+		Pros:
+			- Scalability
+			- High Availability
+		Cons:
+			- Expensive
+			- Management More Difficult
+
+	- Multi Cluster Shared Data (A Hybrid of both Shared Disk and Shared Nothing Architectures)
+		- Central Data Repository
+		- Massive parallel processing compute clusters
+		- Each node stores a portion of data locally
+		Pros:
+			- Data Management Simplicity (From Shared Disk)
+			- Performance scale-out benefits (From Shared Nothing)
+			
+On a high level, there are three layers in the architecture:
+
+	|---------------------------------------|
+	|	      Cloud Services		|
+	|------------------^^-------------------|
+	|	Query Processing (Compute)	|
+	|------------------^^-------------------|
+	|	    Database Storage		|
+	|---------------------------------------|		
+	
+1. Database Storage Layer:
+	- Compressed Columnar Storage
+		Decoupled Compute & Storage
+		Blob Storage (AWS/Azure/GCP)
+		Snowflake manages all aspects about storage
+		Optimized for OLAP/analytics purposes
+		
+2. Query Processing Layer (Compute Layer):
+	- Muscle of the system
+		Queries are processed using virtual warehouses.
+		Warehouse: MPP compute cluster (multiple compute nodes)
+		provides resources: CPU, memory, and temprory storage
+		
+3. Clude Services:
+	- Brain of the system
+		Authentication
+		Access Layer
+		Metadata Management
+		Query Parsing and optimization
+		Infrastructure management
+
++++++++++++++++++++++++++++++++++++++++++++++++++++ Individual Table Storage +++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Show Tables;   ===>  Statistics for the table storage and properties
+
+TABLE_STORAGE_METRICS	------|
+     view in		      |
+  ACCOUNT_USAGE		      |
+  			      |_____  Most Detailed account usage details can be found in these schemas
+			      |
+TABLE_STORAGE_METRICS	      |
+     view in		      |
+  ACCOUNT_USAGE		------|
+  
++++++++++++++++++++++++++++++++++++++++++++++++++++++++ Resource Monitors ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+There are multiple configuration that can be setup to control and monitor the usage of warehouses and account credits.
+
+ACCOUNTADMIN role can configure those.
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ Warehouses +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+We can create the warehouses in the admin > warehouses, for this the role should be ACCOUNTADMIN/SYSADMIN
+Or the SQL can be used to create the warehouses.
+
+System can detect when to scaleup the clusters based on the checks if there is enough workload to keep the WH busy atleast for next 6 minutes.
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ Objects +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+One Organization can have multiple accounts setup, and each account can have multiple objects in it.
+- Users, Roles, Databases, Warehouses and some more are example of an object.
+
+There can be a multilevel heirarchy of onjects like from above objects, Database can have its own object set like
+- UDFs, Views, Tables, Stages and many more.
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ SnowSQL +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+What is SnowSQL?
+
+- Tool to connect snowflake via CLI 
+- Execute queries, load, and unload data
+- Perform DDL and DML operations
+
+
+=================================================================================================================================
+++++++++++++++++++++++++++++++++++++++++++++++++++ Data Loading & Un-loading ++++++++++++++++++++++++++++++++++++++++++++++++++++
+================================================================================================================================+
+### STAGES
+
+Internal Stage: Snowflake managed data cloud where we can store our data if we are not using any third-party cloud services.
+There are three stages:
+	- User Stages: Tied to an individual user, cannot be accessed by other users. Can not be droped or modified. Every user has default stage. Put files to those stages before loading, explicitly remove files again. Loading to multiple tables. Refered to '@~'
+	- Table Stages: Automatically created with a table, can only be accessed by only one table. cannot be altered or dropped. load to one table. Refered to as '@%TABLE_NAME'.
+	- Internal Named Stages: This stage can be created manually "CREATE STAGE ...". Snowflake database object. Access can be set for stage and anyone with previllages can access the stage. This is most flexible stage. refered to as '@STAGE_NAME'
+
+    Use Case: For example you have files in your local system, and want it to load to snowflake in tables and process that data and download the processed data file. you can use the stages for this work.
+	Example: 
+		1. Connect to SnowSQL.
+		2. PUT command to upload the file to USER_STAGE.
+		3. Use COPY command to copy it to specific tables.
+		4. Process the data.
+		5. Use COPY command to copy the processed data back to USER_STATE.
+		6. GET command to download the file from USER_STAGE.
+
+External Stage: This is almost similar to the Internal Named Stages, it can be created with the third party storage location using "CREATE STAGE ...". These are also the database objects, hence can be accessed via privillages. refered to as '@STAGE_NAME'. The only difference is it points to the external storage location like AWS S3, Google Cloud Storage (GCP), Azure Container.
+	Command: CREATE STAGE <stage_name> 
+			URL = 's3://bucket/path/' 
+			STORAGE_INTEGRATION = <storage creadentials object> 
+			FILE_FORMAT = ...
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++ Stage Commands ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+LIST command can be used to list all the files and additional properties with in the stage.
+
+LIST @STAGE_NAME;	-------->	This can access the Internal Named Stages/External Stages.
+LIST @~;	-------->	This can access the User Stage.
+LIST @%STAGE_NAME	-------->	This can access the Table Stage.
+
+			-------------------------------------------------------------------------
+
+COPY command can be used to copy the data from stage to table and vice versa.
+
+copy FROM stage AKA Bulk Loading:
+
+	COPY INTO TABLE_NAME
+	FROM @STAGE_NAME;
+
+For this the following are required:
+	- Files must already be in a stage(external/internal).
+	- Warehouses are needed
+	- Data transfer costs may apply based on the data transaction.
+	File formats:
+		- CSV (Default)
+		- JSON
+		- AVRO
+		- ORC
+		- PARQUET
+		- XML
+Multiple/Single file from the stage can be specified in the COPY command to load it to the table.
+	example:
+		COPY INTO TABLE_NAME
+		FROM @STAGE_NAME;
+		FILES = file_name1,...;
+	
+Loading can be done by filename patterns too:
+	example:
+		COPY INTO TABLE_NAME
+		FROM @STAGE_NAME;
+		PATTERN = .*sales.*;	----> this makes sure any file having sales in its name is picked.
+	
+copy TO stage:
+
+	COPY INTO @STAGE_NAME
+	FROM TABLE_NAME;
+	
+			-------------------------------------------------------------------------
+			
+File Format: We can create file format objects and can reuse it in the different commands.
+	CREATE FILE_FORMAT <fileformatname>
+		TYPE = CSV
+		FIELD_DELIMITER = ','
+		SKIP_HEADER = 1;
+	
+example of file format usage:
+	
+	CREATE STAGE <stagename>
+		URL='<location>'
+		FILE_FORMAT=(FORMAT_NAME=<fileformatname>);
+		
+Alter file format:
+	ALTER file format <fileformatname>
+    		SET <property_name> = <value>;
+
+Note: we can alter the property value but we can not change the prperty type.
+		
+
+			-------------------------------------------------------------------------
+
+Query Command can be used to get either all the data or specific column data from the STAGE.
+
+SELECT * FROM @STAGE_NAME;
+	-OR-
+SELECT
+$1,
+$2,
+$3,
+$4
+FROM @STAGE_NAME;
+
+			-------------------------------------------------------------------------
+			
+INSERT and UPDATE commands are same as that of original SQL commands
+
+// Insert single row
+INSERT INTO OUR_FIRST_DB.PUBLIC.ORDERS
+VALUES (1,0,0,0, 'None','None');
+
+// Insert multiple rows
+INSERT INTO OUR_FIRST_DB.PUBLIC.ORDERS
+VALUES 
+(2,12,4,1, 'Garden','Flowers'),
+(3,15,6,2, 'House','Kitchen'),
+(4,11,2,1, 'House','Sleeping');
+
+INSERT INTO OUR_FIRST_DB.PUBLIC.ORDERS (ORDER_ID, SUBCATEGORY)
+VALUES 
+(2,'Flowers'),
+(3,'Kitchen'),
+(4,'Sleeping');
+
+
+The only variation is the truncate pre insert:
+
+//INSERT OVERWRITE - Truncates the table
+INSERT OVERWRITE INTO OUR_FIRST_DB.PUBLIC.ORDERS (ORDER_ID, SUBCATEGORY)
+VALUES 
+(20,'Flowers'),
+(30,'Kitchen'),
+(40,'Sleeping');
+
+// update the subcategory where order id matches.
+UPDATE OUR_FIRST_DB.PUBLIC.ORDERS
+SET SUBCATEGORY='Flowers'
+WHERE ORDER_ID=20;
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++ Integration Object ++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Integration Objects can be used to control the accesses.
+These are SnowFlake Objects.
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ Snowpipe +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+This is used for continuous data loading, which is different from the previous loading using copy command, in copy command we had to manually execute it to load the data. snowpipe can load the data automatically whenever a new file appears in the desired bloc storage location.
+
+This also includes the COPY statement, and the loading follows the copy statement present in it.
+
+Snowpipe is a serverless feature, hence it does not require a warehouse for it to function.
+
+	CREATE PIPE <name>
+	AUTO_INGEST = TRUE
+	INTEGRATION = '<string>' // the string used for notification so that on receiving the notification the ingestion can start.
+	COMMENT = '<string_literal>'
+	AS COPY INTO <table_name>
+	
+These snowpipes can be used  by following methods:
+	- Cloud Messaging
+		* This uses the cloud notifications.
+		* External Stages can only apply this.
+	- Rest API
+		* This calls Rest API endpoints.
+		* Both internal and external stages can use this.
+	FROM @stage_name
+	
+The pipe maintains the load history for upto 14 days, and manages the meta data to optimize the data loading.
+The ideal filesize for the pipe to consume is 100-250 MB. The pipe can be paused/resumed.
+
+	ALTER PIPE
+	SET PIPE_EXECUTION_PAUSED = TRUE
+	
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ Copy Options +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Copy Options can be used in loading/unloading using the copy command. these in general are the stage properties.
