@@ -6,7 +6,7 @@ a_string = array(['python', 'is', 'good'])
 
 print(a_int, a_char, a_string)
 
-a_linspace = linspace(20, 200, 10)import
+a_linspace = linspace(20, 200, 10)
 a_logspace = logspace(20, 200, 10)
 
 print(a_linspace, a_logspace)
